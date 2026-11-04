@@ -1,9 +1,6 @@
-/// Hardcoded-дані замість відповідей сервера (бізнес-логіка буде в наступних ЛР).
+/// Заглушки статистики до інтеграції з Cloud Firestore.
+/// Дані користувача беруться з Firebase Auth.
 abstract final class MockData {
-  static const String userName = 'Vova';
-  static const String userEmail = 'vova@example.com';
-  static const String userInitials = 'VV';
-
   static const int totalGames = 12;
   static const int totalMatches = 48;
 

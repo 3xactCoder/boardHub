@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
 
-/// Коротке сповіщення внизу екрана.
-void showAppSnackBar(BuildContext context, String message) {
+import '../theme/app_colors.dart';
+
+/// Коротке сповіщення внизу екрана; [isError] підсвічує помилку.
+void showAppSnackBar(
+  BuildContext context,
+  String message, {
+  bool isError = false,
+}) {
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message)));
+    ..showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? AppColors.error : null,
+      ),
+    );
 }

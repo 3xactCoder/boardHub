@@ -29,4 +29,7 @@ abstract final class AppColors {
   static const Color textLabel = Color(0xFF314158);
   static const Color textMuted = Color(0xFF79716B);
   static const Color textFaint = Color(0xFFA6A09B);
+
+  // Стани
+  static const Color error = Color(0xFFB3261E);
 }

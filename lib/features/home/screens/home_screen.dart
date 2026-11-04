@@ -8,17 +8,17 @@ import '../../../core/widgets/app_buttons.dart';
 import '../../../core/widgets/page_container.dart';
 import '../../../core/widgets/page_header.dart';
 import '../../../core/widgets/stat_card.dart';
+import '../../auth/data/app_user.dart';
 import '../../shell/nav_destinations.dart';
 import '../widgets/recent_match_card.dart';
 import '../widgets/top_game_card.dart';
 
 /// Головна панель (Dashboard) зі статистикою та швидким доступом до функцій.
 class HomeScreen extends StatelessWidget {
+  final AppUser user;
   final ValueChanged<AppSection> onNavigate;
 
-  static const String _userName = MockData.userName;
-
-  const HomeScreen({super.key, required this.onNavigate});
+  const HomeScreen({super.key, required this.user, required this.onNavigate});
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +45,7 @@ class HomeScreen extends StatelessWidget {
       children: [
         PageHeader(
           eyebrow: DateFormatter.fullDate(now),
-          title: '${DateFormatter.greeting(now)}, $_userName.',
+          title: '${DateFormatter.greeting(now)}, ${user.name}.',
           // На мобільних кнопка «Record» є в нижній панелі.
           action: isDesktop
               ? PrimaryButton(
@@ -57,11 +57,12 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.xLarge),
         if (isDesktop) ...[
-          const Row(
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(child: gamesCard),
-              SizedBox(width: AppSpacing.large),
-              Expanded(child: matchesCard),
+              gamesCard,
+              SizedBox(height: AppSpacing.large),
+              matchesCard,
             ],
           ),
           const SizedBox(height: AppSpacing.large),

@@ -4,11 +4,14 @@ import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
 
 /// Основна (залита) кнопка підтвердження дії.
+///
+/// Поки [loading] = true, показує індикатор і блокує повторне натискання.
 class PrimaryButton extends StatelessWidget {
   final String label;
   final IconData? icon;
   final VoidCallback? onPressed;
   final bool expanded;
+  final bool loading;
 
   const PrimaryButton({
     super.key,
@@ -16,18 +19,31 @@ class PrimaryButton extends StatelessWidget {
     this.icon,
     this.onPressed,
     this.expanded = false,
+    this.loading = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final button = FilledButton.icon(
-      onPressed: onPressed,
-      icon: icon == null ? null : Icon(icon, size: 20),
+      onPressed: loading ? null : onPressed,
+      icon: loading
+          ? const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : icon == null
+          ? null
+          : Icon(icon, size: 20),
       label: Text(label),
       style:
           FilledButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
+            disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.6),
+            disabledForegroundColor: Colors.white,
             minimumSize: const Size(48, 46),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             textStyle: Theme.of(context).textTheme.labelLarge

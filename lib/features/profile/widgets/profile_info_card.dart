@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/data/mock_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/app_buttons.dart';
 import '../../../core/widgets/app_card.dart';
-import '../../../core/widgets/app_snackbar.dart';
-import '../../../core/widgets/initials_avatar.dart';
+import '../../../core/widgets/user_avatar.dart';
+import '../../auth/data/app_user.dart';
+import 'edit_profile_dialog.dart';
 
-/// Картка з аватаром, кнопкою «Upload Photo» та даними облікового запису.
+/// Картка з фото, кнопкою редагування та даними облікового запису.
 class ProfileInfoCard extends StatelessWidget {
-  const ProfileInfoCard({super.key});
+  final AppUser user;
+
+  const ProfileInfoCard({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -19,27 +21,27 @@ class ProfileInfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Center(
-            child: InitialsAvatar(initials: MockData.userInitials, size: 92),
+          Center(
+            child: UserAvatar(
+              photoUrl: user.photoUrl,
+              initials: user.initials,
+              size: 92,
+            ),
           ),
           const SizedBox(height: AppSpacing.large),
           Center(
             child: SecondaryButton(
-              label: 'Upload Photo',
-              icon: Icons.file_upload_outlined,
-              // Вибір файлу буде підключено разом із бізнес-логікою.
-              onPressed: () => showAppSnackBar(
-                context,
-                'Photo upload will be available soon.',
-              ),
+              label: 'Edit Profile',
+              icon: Icons.edit_outlined,
+              onPressed: () => EditProfileDialog.show(context, user),
             ),
           ),
           const SizedBox(height: AppSpacing.large),
           const Divider(),
           const SizedBox(height: AppSpacing.large),
-          const _InfoField(label: 'Username', value: MockData.userName),
+          _InfoField(label: 'Username', value: user.name),
           const SizedBox(height: AppSpacing.medium),
-          const _InfoField(label: 'Email', value: MockData.userEmail),
+          _InfoField(label: 'Email', value: user.email),
         ],
       ),
     );

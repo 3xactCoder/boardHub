@@ -1,26 +1,36 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/di/app_scope.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/utils/validators.dart';
 import '../../../core/widgets/app_buttons.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/app_text_field.dart';
+import '../data/auth_failure.dart';
 
-/// Модальне вікно «Reset your password».
+/// Модальне вікно «Reset your password»: надсилає лист Firebase Auth.
 class ForgotPasswordDialog extends StatefulWidget {
-  const ForgotPasswordDialog({super.key});
+  final String initialEmail;
 
-  static Future<void> show(BuildContext context) => showDialog<void>(
-    context: context,
-    builder: (_) => const ForgotPasswordDialog(),
-  );
+  const ForgotPasswordDialog({super.key, this.initialEmail = ''});
+
+  static Future<void> show(BuildContext context, {String initialEmail = ''}) =>
+      showDialog<void>(
+        context: context,
+        builder: (_) => ForgotPasswordDialog(initialEmail: initialEmail),
+      );
 
   @override
   State<ForgotPasswordDialog> createState() => _ForgotPasswordDialogState();
 }
 
 class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
-  final _emailController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  late final _emailController = TextEditingController(
+    text: widget.initialEmail,
+  );
+  bool _submitting = false;
 
   @override
   void dispose() {
@@ -28,16 +38,28 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
     super.dispose();
   }
 
-  void _sendResetLink() {
+  Future<void> _sendResetLink() async {
+    if (_submitting || !_formKey.currentState!.validate()) return;
+
+    final services = AppScope.of(context);
     final email = _emailController.text.trim();
-    Navigator.of(context).pop();
-    // Без бізнес-логіки: лише імітуємо надсилання листа.
-    showAppSnackBar(
-      context,
-      email.isEmpty
-          ? 'Reset link sent to your email.'
-          : 'Reset link sent to $email.',
-    );
+    setState(() => _submitting = true);
+    try {
+      await services.authRepository.sendPasswordReset(email: email);
+      services.analytics.logEvent('password_reset_requested');
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      // Firebase не розкриває, чи існує акаунт, тому повідомлення нейтральне.
+      showAppSnackBar(
+        context,
+        'If an account exists for $email, a reset link has been sent.',
+      );
+    } on AuthFailure catch (e) {
+      if (mounted) {
+        showAppSnackBar(context, e.message, isError: true);
+        setState(() => _submitting = false);
+      }
+    }
   }
 
   @override
@@ -52,47 +74,56 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
         constraints: const BoxConstraints(maxWidth: 448),
         child: Padding(
           padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Reset your password',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Reset your password',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    tooltip: 'Close',
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, color: AppColors.textBody),
-                  ),
-                ],
-              ),
-              const Text(
-                "Enter your email and we'll send you a reset link.",
-                style: TextStyle(fontSize: 14, color: AppColors.textMuted),
-              ),
-              const SizedBox(height: AppSpacing.large),
-              AppTextField(
-                label: 'Email',
-                hint: 'you@example.com',
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: AppSpacing.large),
-              PrimaryButton(
-                label: 'Send Reset Link',
-                onPressed: _sendResetLink,
-              ),
-            ],
+                    IconButton(
+                      tooltip: 'Close',
+                      onPressed: _submitting
+                          ? null
+                          : () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, color: AppColors.textBody),
+                    ),
+                  ],
+                ),
+                const Text(
+                  "Enter your email and we'll send you a reset link.",
+                  style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+                ),
+                const SizedBox(height: AppSpacing.large),
+                AppTextField(
+                  label: 'Email',
+                  hint: 'you@example.com',
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: Validators.email,
+                  onFieldSubmitted: (_) => _sendResetLink(),
+                  enabled: !_submitting,
+                ),
+                const SizedBox(height: AppSpacing.large),
+                PrimaryButton(
+                  label: _submitting ? 'Sending…' : 'Send Reset Link',
+                  loading: _submitting,
+                  onPressed: _sendResetLink,
+                ),
+              ],
+            ),
           ),
         ),
       ),
