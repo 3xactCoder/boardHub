@@ -1,54 +1,80 @@
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:flutter/foundation.dart';
+import 'dart:async';
 
-/// Обгортка над Firebase Crashlytics. Crashlytics не підтримує Web і
-/// Windows, тому там (і в тестах) усі виклики ігноруються.
+import 'package:flutter/widgets.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
+
+/// Обгортка над Sentry для звітів про помилки.
+///
+/// Sentry використано замість Firebase Crashlytics, бо Crashlytics не
+/// підтримує Web. Без DSN (і в тестах) усі виклики ігноруються.
 class CrashReporter {
-  final FirebaseCrashlytics? _crashlytics;
+  final bool isEnabled;
 
-  const CrashReporter._(this._crashlytics);
+  const CrashReporter._(this.isEnabled);
 
-  const CrashReporter.disabled() : this._(null);
+  const CrashReporter.disabled() : this._(false);
 
-  factory CrashReporter.create() =>
-      CrashReporter._(isSupported ? FirebaseCrashlytics.instance : null);
-
-  static bool get isSupported =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.macOS);
-
-  bool get isEnabled => _crashlytics != null;
-
-  /// Перенаправляє необроблені помилки Flutter і Dart у Crashlytics.
-  void init() {
-    final crashlytics = _crashlytics;
-    if (crashlytics == null) return;
-
-    FlutterError.onError = crashlytics.recordFlutterFatalError;
-    PlatformDispatcher.instance.onError = (error, stack) {
-      crashlytics.recordError(error, stack, fatal: true);
-      return true;
-    };
+  /// Ініціалізує Flutter і Sentry та запускає застосунок через [appRunner].
+  ///
+  /// Усе виконується в одній зоні [runZonedGuarded]: інакше на Web Flutter
+  /// ініціалізується в кореневій зоні, а запускається в зоні Sentry
+  /// («Zone mismatch»). Помилки Flutter (FlutterError.onError) Sentry
+  /// перехоплює сам, а необроблені асинхронні помилки потрапляють в onError зони.
+  static Future<void> init({
+    required String dsn,
+    required Future<void> Function(CrashReporter reporter) appRunner,
+  }) async {
+    if (dsn.isEmpty) {
+      WidgetsFlutterBinding.ensureInitialized();
+      await appRunner(const CrashReporter.disabled());
+      return;
+    }
+    runZonedGuarded(
+      () async {
+        WidgetsFlutterBinding.ensureInitialized();
+        await SentryFlutter.init((options) {
+          options.dsn = dsn;
+          options.sendDefaultPii = false;
+        }, appRunner: () => appRunner(const CrashReporter._(true)));
+      },
+      (error, stack) => Sentry.captureException(
+        ThrowableMechanism(
+          Mechanism(type: 'runZonedGuarded', handled: false),
+          error,
+        ),
+        stackTrace: stack,
+      ),
+    );
   }
 
-  Future<void> setUserId(String? uid) async =>
-      _crashlytics?.setUserIdentifier(uid ?? '');
+  Future<void> setUserId(String? uid) async {
+    if (!isEnabled) return;
+    await Sentry.configureScope(
+      (scope) => scope.setUser(uid == null ? null : SentryUser(id: uid)),
+    );
+  }
 
-  /// Нефатальна тестова помилка: застосунок продовжує роботу.
+  /// Оброблена (нефатальна) помилка: застосунок продовжує роботу.
+  /// Імітує розбір некоректного рахунку партії (наприклад, з імпорту).
   Future<void> recordTestError() async {
+    if (!isEnabled) return;
+    const rawScore = '82 points';
     try {
-      throw StateError('BoardHub test non-fatal error');
-    } catch (error, stack) {
-      await _crashlytics?.recordError(
+      int.parse(rawScore);
+    } on FormatException catch (error, stack) {
+      await Sentry.captureException(
         error,
-        stack,
-        reason: 'Manual test from the Profile screen',
+        stackTrace: stack,
+        withScope: (scope) => scope.setTag('feature', 'match-score-import'),
       );
     }
   }
 
-  /// Аварійно завершує застосунок; звіт надійде після наступного запуску.
-  void crash() => _crashlytics?.crash();
+  /// Необроблена помилка, яку перехоплює глобальний обробник Sentry:
+  /// звернення до переможця партії, у якій немає жодного гравця.
+  void throwUnhandledError() {
+    if (!isEnabled) return;
+    final players = <String>[];
+    Timer.run(() => debugPrint('Winner: ${players[0]}'));
+  }
 }

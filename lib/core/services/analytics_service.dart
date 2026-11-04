@@ -26,8 +26,8 @@ class AnalyticsService {
       FirebaseAnalyticsObserver(analytics: analytics),
   ];
 
-  Future<void> logLogin() async =>
-      _analytics?.logLogin(loginMethod: 'password');
+  Future<void> logLogin({String method = 'password'}) async =>
+      _analytics?.logLogin(loginMethod: method);
 
   Future<void> logSignUp() async =>
       _analytics?.logSignUp(signUpMethod: 'password');

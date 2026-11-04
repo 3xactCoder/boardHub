@@ -9,6 +9,13 @@ class AuthFailure implements Exception {
 
   bool get requiresRecentLogin => code == 'requires-recent-login';
 
+  /// Користувач сам закрив вікно Google — це не помилка, повідомлення не потрібне.
+  bool get isCancelled => const {
+    'popup-closed-by-user',
+    'cancelled-popup-request',
+    'web-context-canceled',
+  }.contains(code);
+
   factory AuthFailure.fromFirebase(FirebaseAuthException e) {
     return AuthFailure(e.code, _messages[e.code] ?? _fallback);
   }
@@ -27,7 +34,17 @@ class AuthFailure implements Exception {
     // Реєстрація
     'email-already-in-use': 'An account with this email already exists.',
     'weak-password': 'The password is too weak. Choose a stronger one.',
-    'operation-not-allowed': 'Email sign-in is not enabled for this project.',
+    'operation-not-allowed':
+        'This sign-in method is not enabled for this project.',
+    // Google
+    'popup-blocked':
+        'The browser blocked the Google window. Allow pop-ups and retry.',
+    'account-exists-with-different-credential':
+        'An account with this email already exists. Log in with your '
+        'password, then link Google in your profile.',
+    'credential-already-in-use':
+        'This Google account is already used by another BoardHub account.',
+    'provider-already-linked': 'Google is already linked to this account.',
     // Зміна пароля
     'requires-recent-login':
         'For security reasons, please log out and log in again, '

@@ -51,6 +51,23 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _logInWithGoogle() async {
+    if (_submitting) return;
+
+    final services = AppScope.of(context);
+    setState(() => _submitting = true);
+    try {
+      await services.authRepository.signInWithGoogle();
+      services.analytics.logLogin(method: 'google');
+    } on AuthFailure catch (e) {
+      if (mounted && !e.isCancelled) {
+        showAppSnackBar(context, e.message, isError: true);
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AuthCard(
@@ -96,6 +113,15 @@ class _LoginScreenState extends State<LoginScreen> {
           loading: _submitting,
           onPressed: _logIn,
         ),
+        const SizedBox(height: AppSpacing.medium),
+        const _OrDivider(),
+        const SizedBox(height: AppSpacing.medium),
+        SecondaryButton(
+          label: 'Continue with Google',
+          icon: Icons.g_mobiledata_rounded,
+          expanded: true,
+          onPressed: _submitting ? null : _logInWithGoogle,
+        ),
         const SizedBox(height: AppSpacing.small),
         TextButton(
           onPressed: _submitting
@@ -117,6 +143,27 @@ class _LoginScreenState extends State<LoginScreen> {
           actionLabel: 'Create account',
           onTap: () => Navigator.of(context).pushNamed(AppRoutes.register),
         ),
+      ],
+    );
+  }
+}
+
+class _OrDivider extends StatelessWidget {
+  const _OrDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      children: [
+        Expanded(child: Divider()),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.medium),
+          child: Text(
+            'or',
+            style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+          ),
+        ),
+        Expanded(child: Divider()),
       ],
     );
   }

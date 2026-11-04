@@ -15,7 +15,7 @@ dart pub global activate flutterfire_cli
 flutterfire configure
 ```
 
-Crashlytics працює на Android/iOS/macOS; на Web і Windows вона вимкнена. Analytics працює скрізь, крім Windows.
+Звіти про помилки надсилаються в [Sentry](https://sentry.io) (Crashlytics не підтримує Web): вставте DSN проєкту в `lib/core/services/sentry_config.dart`. Analytics працює скрізь, крім Windows.
 
 ## Запуск
 
@@ -27,5 +27,5 @@ flutter run -d emulator-5554
 
 ## Структура
 
-- `lib/core` — тема, утиліти й валідатори, сервіси Analytics/Crashlytics (`core/services`), DI (`core/di`), маршрути та спільні віджети (`core/widgets`).
+- `lib/core` — тема, утиліти й валідатори, сервіси Analytics/Sentry (`core/services`), DI (`core/di`), маршрути та спільні віджети (`core/widgets`).
 - `lib/features` — модулі `auth`, `home`, `profile`, `shell`; взаємодія з Firebase Auth винесена в репозиторії `auth/data/auth_repository.dart` і `profile/data/profile_repository.dart`.

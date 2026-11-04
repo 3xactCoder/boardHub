@@ -7,11 +7,15 @@ class AppUser {
   final String? displayName;
   final String? photoUrl;
 
+  /// Прив'язані способи входу: `password`, `google.com`.
+  final Set<String> providers;
+
   const AppUser({
     required this.uid,
     required this.email,
     this.displayName,
     this.photoUrl,
+    this.providers = const {},
   });
 
   factory AppUser.fromFirebase(User user) => AppUser(
@@ -19,7 +23,11 @@ class AppUser {
     email: user.email ?? '',
     displayName: user.displayName,
     photoUrl: user.photoURL,
+    providers: {for (final info in user.providerData) info.providerId},
   );
+
+  bool get hasPassword => providers.contains(EmailAuthProvider.PROVIDER_ID);
+  bool get hasGoogle => providers.contains(GoogleAuthProvider.PROVIDER_ID);
 
   /// Ім'я для відображення: displayName або частина email до «@».
   String get name {

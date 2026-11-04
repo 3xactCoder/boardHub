@@ -12,8 +12,13 @@ import '../../../core/widgets/icon_badge.dart';
 import '../../auth/data/auth_failure.dart';
 
 /// Форма зміни пароля через Firebase Auth.
+///
+/// Для акаунта, створеного лише через Google, пароля немає — тоді
+/// замість форми показується пояснення.
 class ChangePasswordCard extends StatefulWidget {
-  const ChangePasswordCard({super.key});
+  final bool hasPassword;
+
+  const ChangePasswordCard({super.key, this.hasPassword = true});
 
   @override
   State<ChangePasswordCard> createState() => _ChangePasswordCardState();
@@ -136,45 +141,58 @@ class _ChangePasswordCardState extends State<ChangePasswordCard> {
               ],
             ),
             const SizedBox(height: AppSpacing.large),
-            AppTextField(
-              label: 'Current password',
-              controller: _currentController,
-              obscureText: true,
-              textInputAction: TextInputAction.next,
-              autofillHints: const [AutofillHints.password],
-              validator: Validators.requiredPassword,
-              enabled: !_submitting,
-            ),
-            const SizedBox(height: AppSpacing.medium),
-            AppTextField(
-              label: 'New password',
-              controller: _newController,
-              obscureText: true,
-              textInputAction: TextInputAction.next,
-              autofillHints: const [AutofillHints.newPassword],
-              validator: _validateNew,
-              enabled: !_submitting,
-            ),
-            const SizedBox(height: AppSpacing.medium),
-            AppTextField(
-              label: 'Confirm new password',
-              controller: _confirmController,
-              obscureText: true,
-              textInputAction: TextInputAction.done,
-              validator: Validators.confirmPassword(() => _newController.text),
-              onFieldSubmitted: (_) => _updatePassword(),
-              enabled: !_submitting,
-            ),
-            const SizedBox(height: AppSpacing.large),
-            PrimaryButton(
-              label: _submitting ? 'Updating…' : 'Update Password',
-              expanded: true,
-              loading: _submitting,
-              onPressed: _updatePassword,
-            ),
+            if (!widget.hasPassword)
+              const Text(
+                'Your account uses Google sign-in, so it has no password. '
+                'Manage your password in your Google account.',
+                style: TextStyle(fontSize: 14, color: AppColors.textBody),
+              )
+            else
+              ..._passwordFields(),
           ],
         ),
       ),
     );
+  }
+
+  List<Widget> _passwordFields() {
+    return [
+      AppTextField(
+        label: 'Current password',
+        controller: _currentController,
+        obscureText: true,
+        textInputAction: TextInputAction.next,
+        autofillHints: const [AutofillHints.password],
+        validator: Validators.requiredPassword,
+        enabled: !_submitting,
+      ),
+      const SizedBox(height: AppSpacing.medium),
+      AppTextField(
+        label: 'New password',
+        controller: _newController,
+        obscureText: true,
+        textInputAction: TextInputAction.next,
+        autofillHints: const [AutofillHints.newPassword],
+        validator: _validateNew,
+        enabled: !_submitting,
+      ),
+      const SizedBox(height: AppSpacing.medium),
+      AppTextField(
+        label: 'Confirm new password',
+        controller: _confirmController,
+        obscureText: true,
+        textInputAction: TextInputAction.done,
+        validator: Validators.confirmPassword(() => _newController.text),
+        onFieldSubmitted: (_) => _updatePassword(),
+        enabled: !_submitting,
+      ),
+      const SizedBox(height: AppSpacing.large),
+      PrimaryButton(
+        label: _submitting ? 'Updating…' : 'Update Password',
+        expanded: true,
+        loading: _submitting,
+        onPressed: _updatePassword,
+      ),
+    ];
   }
 }

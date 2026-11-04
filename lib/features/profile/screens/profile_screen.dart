@@ -9,8 +9,9 @@ import '../../auth/data/app_user.dart';
 import '../widgets/change_password_card.dart';
 import '../widgets/diagnostics_card.dart';
 import '../widgets/profile_info_card.dart';
+import '../widgets/sign_in_methods_card.dart';
 
-/// Екран профілю: фото, дані користувача та зміна пароля.
+/// Екран профілю: фото, дані користувача, зміна пароля та способи входу.
 class ProfileScreen extends StatelessWidget {
   final AppUser user;
   final VoidCallback onLogout;
@@ -42,10 +43,16 @@ class ProfileScreen extends StatelessWidget {
                           child: ProfileInfoCard(user: user),
                         ),
                         const SizedBox(width: AppSpacing.large),
-                        const Expanded(child: ChangePasswordCard()),
+                        Expanded(
+                          child: ChangePasswordCard(
+                            hasPassword: user.hasPassword,
+                          ),
+                        ),
                       ],
                     ),
                   ),
+                  const SizedBox(height: AppSpacing.large),
+                  SignInMethodsCard(user: user),
                   const SizedBox(height: AppSpacing.large),
                   const DiagnosticsCard(),
                 ],
@@ -55,7 +62,9 @@ class ProfileScreen extends StatelessWidget {
         else ...[
           ProfileInfoCard(user: user),
           const SizedBox(height: AppSpacing.medium),
-          const ChangePasswordCard(),
+          ChangePasswordCard(hasPassword: user.hasPassword),
+          const SizedBox(height: AppSpacing.medium),
+          SignInMethodsCard(user: user),
           const SizedBox(height: AppSpacing.medium),
           const DiagnosticsCard(),
           const SizedBox(height: AppSpacing.large),

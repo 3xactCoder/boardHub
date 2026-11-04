@@ -8,8 +8,8 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_snackbar.dart';
 import '../../../core/widgets/icon_badge.dart';
 
-/// Перевірка інтеграції Crashlytics: нефатальна помилка та аварійне завершення.
-/// Показується лише там, де Crashlytics підтримується (Android, iOS, macOS).
+/// Перевірка інтеграції Sentry: оброблена та необроблена помилки.
+/// Показується, лише коли Sentry налаштовано (задано DSN).
 class DiagnosticsCard extends StatelessWidget {
   const DiagnosticsCard({super.key});
 
@@ -40,7 +40,7 @@ class DiagnosticsCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Send a test report to Firebase Crashlytics.',
+                      'Send a test report to Sentry.',
                       style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textMuted,
@@ -57,19 +57,22 @@ class DiagnosticsCard extends StatelessWidget {
             runSpacing: AppSpacing.small,
             children: [
               SecondaryButton(
-                label: 'Send Test Error',
+                label: 'Report Score Parse Error',
                 icon: Icons.report_outlined,
                 onPressed: () async {
                   await crashReporter.recordTestError();
                   if (context.mounted) {
-                    showAppSnackBar(context, 'Non-fatal error reported.');
+                    showAppSnackBar(
+                      context,
+                      'FormatException reported to Sentry.',
+                    );
                   }
                 },
               ),
               SecondaryButton(
-                label: 'Test Crash',
+                label: 'Open Empty Match (crash)',
                 icon: Icons.warning_amber_outlined,
-                onPressed: crashReporter.crash,
+                onPressed: crashReporter.throwUnhandledError,
               ),
             ],
           ),

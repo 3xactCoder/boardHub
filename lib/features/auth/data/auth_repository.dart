@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 import 'app_user.dart';
 import 'auth_failure.dart';
@@ -41,6 +42,15 @@ class AuthRepository {
         () =>
             _auth.signInWithEmailAndPassword(email: email, password: password),
       );
+
+  /// Вхід через Google. Якщо акаунта ще немає, Firebase створює його.
+  /// На Web відкривається спливне вікно, на мобільних — сторінка Google.
+  Future<void> signInWithGoogle() => _guard(() {
+    final provider = GoogleAuthProvider();
+    return kIsWeb
+        ? _auth.signInWithPopup(provider)
+        : _auth.signInWithProvider(provider);
+  });
 
   Future<void> sendPasswordReset({required String email}) =>
       _guard(() => _auth.sendPasswordResetEmail(email: email));

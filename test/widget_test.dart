@@ -2,8 +2,8 @@ import 'package:boardhub/app.dart';
 import 'package:boardhub/core/di/app_scope.dart';
 import 'package:boardhub/features/auth/data/auth_repository.dart';
 import 'package:boardhub/features/profile/data/profile_repository.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
+import 'package:firebase_auth_platform_interface/firebase_auth_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mock_exceptions/mock_exceptions.dart';
@@ -14,17 +14,34 @@ void _setScreenSize(WidgetTester tester, Size size) {
   addTearDown(tester.view.reset);
 }
 
-final _user = MockUser(
+/// Користувач із прив'язаними способами входу [providers].
+MockUser _newUser({List<String> providers = const ['password']}) => MockUser(
   uid: 'u1',
   email: 'vova@example.com',
   displayName: 'Vova',
+  providerData: [
+    for (final id in providers)
+      UserInfo.fromPigeon(
+        InternalUserInfo(
+          uid: 'u1',
+          email: 'vova@example.com',
+          providerId: id,
+          isAnonymous: false,
+          isEmailVerified: true,
+        ),
+      ),
+  ],
 );
 
 Future<MockFirebaseAuth> _pumpApp(
   WidgetTester tester, {
   bool signedIn = false,
+  List<String> providers = const ['password'],
 }) async {
-  final auth = MockFirebaseAuth(mockUser: _user, signedIn: signedIn);
+  final auth = MockFirebaseAuth(
+    mockUser: _newUser(providers: providers),
+    signedIn: signedIn,
+  );
   await tester.pumpWidget(
     BoardHubApp(
       services: AppServices(
@@ -147,5 +164,43 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Welcome back'), findsOneWidget);
     expect(find.text('You have been logged out.'), findsOneWidget);
+  });
+
+  testWidgets('Google sign-in opens the dashboard', (tester) async {
+    _setScreenSize(tester, const Size(1440, 1000));
+    await _pumpApp(tester, providers: ['google.com']);
+
+    await tester.tap(find.text('Continue with Google'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Total games'), findsOneWidget);
+  });
+
+  testWidgets('Profile shows sign-in methods and offers to link Google', (
+    tester,
+  ) async {
+    _setScreenSize(tester, const Size(1440, 1400));
+    await _pumpApp(tester, signedIn: true);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Profile').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign-in methods'), findsOneWidget);
+    expect(find.text('Link Google'), findsOneWidget);
+    expect(find.text('Update Password'), findsOneWidget);
+  });
+
+  testWidgets('Google-only account has no password form', (tester) async {
+    _setScreenSize(tester, const Size(1440, 1400));
+    await _pumpApp(tester, signedIn: true, providers: ['google.com']);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Profile').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Update Password'), findsNothing);
+    expect(find.text('Link Google'), findsNothing);
+    expect(find.textContaining('uses Google sign-in'), findsOneWidget);
   });
 }

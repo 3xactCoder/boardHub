@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../auth/data/auth_failure.dart';
 
@@ -27,6 +28,19 @@ class ProfileRepository {
     }
     if (photoUrl != user.photoURL) {
       await user.updatePhotoURL(photoUrl);
+    }
+    await user.reload();
+  });
+
+  /// Прив'язує Google до поточного акаунта, щоб входити будь-яким способом
+  /// в той самий профіль (об'єднання способів входу).
+  Future<void> linkGoogle() => _guard(() async {
+    final user = _user;
+    final provider = GoogleAuthProvider();
+    if (kIsWeb) {
+      await user.linkWithPopup(provider);
+    } else {
+      await user.linkWithProvider(provider);
     }
     await user.reload();
   });
